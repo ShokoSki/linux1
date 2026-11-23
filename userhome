@@ -1,0 +1,55 @@
+#!/bin/bash
+
+usage() {
+    echo "Usage: $0 [-f file] [username]"
+    echo "       $0 --help | --usage"
+}
+
+bad_usage() {
+    usage >&2
+    exit 3
+}
+
+file=/etc/passwd
+args=("$@")
+
+case "$1" in
+    --help|--usage)
+        [ "${#args[@]}" -eq 1 ] || bad_usage
+        usage
+        exit 0
+        ;;
+    -f)
+        case "$2" in
+            ''|-*) bad_usage ;;
+        esac
+        file=$2
+        shift 2
+        args=("$@")
+        ;;
+esac
+
+case "${#args[@]}" in
+    0) username="$USER" ;;
+    1) username="$1" ;;
+    *) bad_usage ;;
+esac
+
+case "$username" in
+    -*) bad_usage ;;
+esac
+
+if [ ! -f "$file" ]; then
+    echo "File not found: $file" >&2
+    exit 2
+fi
+
+line=$(grep -m 1 "^$username:" "$file")
+case $? in
+    0) echo "$line" | cut -d ':' -f 6 ;;
+    1)
+        echo "User not found: $username" >&2
+        exit 1
+        ;;
+    *) exit 2 ;;
+esac
